@@ -1,0 +1,33 @@
+# Base image: Debian Bullseye Slim
+FROM --platform=linux/amd64 debian:bullseye-slim
+
+# Install dependencies from Debian repositories
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openvpn iptables bash easy-rsa libqrencode4 libpam-google-authenticator wget iptables && \
+    apt-get clean -y; \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+
+RUN ln -s /usr/share/easy-rsa/easyrsa /usr/local/bin
+
+# Set environment variables
+ENV OPENVPN=/etc/openvpn \
+    EASYRSA=/usr/share/easy-rsa \
+    EASYRSA_CRL_DAYS=3650 \
+    EASYRSA_PKI=/etc/openvpn/pki
+
+# Declare the volume for OpenVPN
+VOLUME ["/etc/openvpn"]
+
+# Expose the OpenVPN port
+EXPOSE 1194/udp
+
+# Set the default command
+CMD ["ovpn_run"]
+
+# Copy binaries
+ADD ./bin /usr/local/bin
+RUN chmod a+x /usr/local/bin/*
+
+# Add OTP authentication using a PAM module
+ADD ./otp/openvpn /etc/pam.d/
